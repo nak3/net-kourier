@@ -92,6 +92,15 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 		var ruleRoute []*route.Route
 
 		for _, httpPath := range rule.HTTP.Paths {
+			/*
+				if httpPath.RewriteHost != "" {
+					//preSplitHeaders.Set = append(preSplitHeaders.Set, v1.HeaderValue{
+					preSplitHeaders := v1.HeaderValue{
+						Name:  "Host",
+						Value: httpPath.RewriteHost,
+					}
+				}
+			*/
 
 			path := "/"
 			if httpPath.Path != "" {
@@ -143,7 +152,7 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			}
 
 			if len(wrs) != 0 {
-				r := createRouteForRevision(ingress.Name, ingress.Namespace, httpPath, wrs)
+				r := createRouteForRevision(ingress.Name, ingress.Namespace, httpPath, wrs, httpPath.RewriteHost)
 				ruleRoute = append(ruleRoute, r)
 				res.routes = append(res.routes, r)
 			}
@@ -214,7 +223,7 @@ func lbEndpointsForKubeEndpoints(kubeEndpoints *kubev1.Endpoints, targetPort int
 	return publicLbEndpoints
 }
 
-func createRouteForRevision(ingressName string, ingressNamespace string, httpPath v1alpha1.HTTPIngressPath, wrs []*route.WeightedCluster_ClusterWeight) *route.Route {
+func createRouteForRevision(ingressName string, ingressNamespace string, httpPath v1alpha1.HTTPIngressPath, wrs []*route.WeightedCluster_ClusterWeight, rewriteHost string) *route.Route {
 	routeName := ingressName + "_" + ingressNamespace + "_" + httpPath.Path
 
 	path := "/"
@@ -228,7 +237,7 @@ func createRouteForRevision(ingressName string, ingressNamespace string, httpPat
 	}
 
 	return envoy.NewRoute(
-		routeName, matchHeadersFromHTTPPath(httpPath), path, wrs, routeTimeout, httpPath.AppendHeaders,
+		routeName, matchHeadersFromHTTPPath(httpPath), path, wrs, routeTimeout, httpPath.AppendHeaders, rewriteHost,
 	)
 }
 
