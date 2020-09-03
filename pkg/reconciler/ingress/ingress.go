@@ -62,6 +62,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, ingress *v1alpha1.Ingres
 			return fmt.Errorf("failed to probe Ingress %s/%s: %w", ingress.GetNamespace(), ingress.GetName(), err)
 		}
 	}
+	knative.MarkIngressReady(ingress)
 
 	return nil
 }

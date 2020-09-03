@@ -20,6 +20,8 @@ import (
 	"net/http"
 	"time"
 
+	"fmt"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
@@ -34,6 +36,12 @@ func NewRoute(name string,
 	headers map[string]string,
 	rewriteHost string,
 ) *route.Route {
+
+	if rewriteHost != "" {
+		headers["Host"] = rewriteHost
+	}
+
+	fmt.Printf("--------------------- %+v\n", rewriteHost) // output for debug
 
 	r := &route.Route{
 		Name: name,
@@ -79,10 +87,6 @@ func NewRoute(name string,
 		}}
 
 	//	r.Match.Headers = &route.RouteAction_HostRewrite{HostRewrite: rewriteHost}
-
-	if rewriteHost != "" {
-		ra.Route.HostRewriteSpecifier = &route.RouteAction_HostRewrite{HostRewrite: rewriteHost}
-	}
 
 	r.Action = ra
 
