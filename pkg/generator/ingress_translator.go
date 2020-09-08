@@ -107,6 +107,8 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 				path = httpPath.Path
 			}
 
+			fmt.Printf("0000 ########## %+v \n", httpPath.RewriteHost) // output for debug
+
 			var wrs []*route.WeightedCluster_ClusterWeight
 
 			for _, split := range httpPath.Splits {
@@ -118,9 +120,11 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 
 				endpoints, err := translator.endpointsLister.Endpoints(split.ServiceNamespace).Get(split.ServiceName)
 				if apierrors.IsNotFound(err) {
-					if httpPath.RewriteHost != "" {
-						continue
-					}
+					/*
+						 if httpPath.RewriteHost != "" {
+							continue
+						}
+					*/
 					translator.logger.Warnf("Endpoints '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
 					break
 				} else if err != nil {
@@ -129,9 +133,9 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 
 				service, err := translator.kubeclient.CoreV1().Services(split.ServiceNamespace).Get(split.ServiceName, metav1.GetOptions{})
 				if apierrors.IsNotFound(err) {
-					if httpPath.RewriteHost != "" {
-						continue
-					}
+					//	if httpPath.RewriteHost != "" {
+					//		continue
+					//	}
 					translator.logger.Warnf("Service '%s/%s' not yet created", split.ServiceNamespace, split.ServiceName)
 					break
 				} else if err != nil {
@@ -153,18 +157,21 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 				cluster := envoy.NewCluster(split.ServiceName+path, connectTimeout, publicLbEndpoints, http2, v2.Cluster_STATIC)
 
 				res.clusters = append(res.clusters, cluster)
-				//}
+				//	}
 
 				weightedCluster := envoy.NewWeightedCluster(split.ServiceName+path, uint32(split.Percent), split.AppendHeaders)
 
 				wrs = append(wrs, weightedCluster)
 				fmt.Printf("1 ########## %+v %v %+v\n", rule.HTTP, len(wrs), httpPath.Splits) // output for debug
+				fmt.Printf("nak3 ########## %+v \n", wrs)                                     // output for debug
 			}
 
-			if len(wrs) != 0 {
-				r := createRouteForRevision(ingress.Name, ingress.Namespace, httpPath, wrs)
-				ruleRoute = append(ruleRoute, r)
-				res.routes = append(res.routes, r)
+			if httpPath.RewriteHost != "" {
+				if len(wrs) != 0 {
+					r := createRouteForRevision(ingress.Name, ingress.Namespace, httpPath, wrs)
+					ruleRoute = append(ruleRoute, r)
+					res.routes = append(res.routes, r)
+				}
 			}
 
 		}
@@ -197,6 +204,8 @@ func (translator *IngressTranslator) translateIngress(ingress *v1alpha1.Ingress,
 			res.internalVirtualHosts = append(res.internalVirtualHosts, &virtualHost)
 		}
 	}
+
+	fmt.Printf("0001 ########## %+v\n", res.externalVirtualHosts) // output for debug
 
 	return res, nil
 }

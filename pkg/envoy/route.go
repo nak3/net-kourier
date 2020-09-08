@@ -83,7 +83,7 @@ func NewRoute(name string,
 				UpgradeType: "websocket",
 				Enabled:     &wrappers.BoolValue{Value: true},
 			}},
-			//                      HostRewriteSpecifier: &route.RouteAction_HostRewrite{HostRewrite: rewriteHost},
+			HostRewriteSpecifier: &route.RouteAction_HostRewrite{HostRewrite: rewriteHost},
 		}}
 
 	//	r.Match.Headers = &route.RouteAction_HostRewrite{HostRewrite: rewriteHost}
